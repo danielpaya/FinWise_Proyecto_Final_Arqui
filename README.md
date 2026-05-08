@@ -1,5 +1,15 @@
 # FinWise AI
 
+# Integrantes
+
+- Juan Camilo Gómez Bayona
+- Daniel Sanchez Sotelo
+- Jeronimo Infante Vega
+- Daniel Felipe Pallares Kelin
+- Samuel Guerrero Arcos
+
+
+  
 ## Descripción
 FinWise AI es un sistema inteligente de gestión financiera personal orientado a estudiantes universitarios y jóvenes adultos. El sistema permite registrar ingresos, gastos, presupuestos y metas de ahorro, ofreciendo además herramientas de análisis financiero y orientación educativa mediante un asistente inteligente.
 
@@ -8,13 +18,6 @@ El proyecto busca ayudar a los usuarios a comprender mejor sus hábitos financie
 ---
 
 
-# Integrantes
-
-- Juan Camilo Gómez Bayona
-- Daniel Sanchez Sotelo
-- Jeronimo Infante Vega
-- Daniel Felipe Pallares Kelin
-- Samuel Guerrero Arcos
   
 
 # Objetivo del Proyecto
