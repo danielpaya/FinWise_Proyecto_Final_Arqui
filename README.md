@@ -7,6 +7,16 @@ El proyecto busca ayudar a los usuarios a comprender mejor sus hábitos financie
 
 ---
 
+
+# Integrantes
+
+- Juan Camilo Gómez Bayona
+- Daniel Sanchez Sotelo
+- Jeronimo Infante Vega
+- Daniel Felipe Pallares Kelin
+- Samuel Guerrero Arcos
+  
+
 # Objetivo del Proyecto
 
 Desarrollar un sistema de información que permita a estudiantes universitarios gestionar sus ingresos, gastos, presupuestos y metas de ahorro, con el fin de mejorar su control financiero personal y fortalecer su educación en inversión mediante análisis inteligente, simulaciones y recomendaciones educativas basadas en su perfil financiero.
@@ -185,15 +195,6 @@ La arquitectura contempla una evolución gradual hacia:
 3. Arquitectura orientada a servicios o microservicios parciales.
 
 ---
-
-
-# Integrantes
-
-- Juan Camilo Gómez Bayona
-- Daniel Sanchez Sotelo
-- Jeronimo Infante Vega
-- Daniel Felipe Pallares Kelin
-- Samuel Guerrero Arcos
 
 
 # Stack Tecnológico
