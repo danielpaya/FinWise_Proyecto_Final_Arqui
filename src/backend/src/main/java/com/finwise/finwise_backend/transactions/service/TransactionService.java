@@ -2,6 +2,7 @@ package com.finwise.finwise_backend.transactions.service;
 
 import com.finwise.finwise_backend.categories.dto.CategoryDTO;
 import com.finwise.finwise_backend.categories.model.Category;
+import com.finwise.finwise_backend.shared.enums.CategoryType;
 import com.finwise.finwise_backend.shared.enums.TransactionType;
 import com.finwise.finwise_backend.shared.exception.ResourceNotFoundException;
 import com.finwise.finwise_backend.transactions.dto.TransactionRequest;
@@ -34,10 +35,10 @@ public class TransactionService {
     
     private void initializeMockData() {
         // Create mock categories
-        Category salary = new Category(1L, "Salary", TransactionType.INCOME, "#4CAF50");
-        Category food = new Category(2L, "Food", TransactionType.EXPENSE, "#FF5722");
-        Category transport = new Category(3L, "Transport", TransactionType.EXPENSE, "#2196F3");
-        Category entertainment = new Category(4L, "Entertainment", TransactionType.EXPENSE, "#9C27B0");
+        Category salary = new Category(1L, "Salary", CategoryType.INCOME, "#4CAF50");
+        Category food = new Category(2L, "Food", CategoryType.EXPENSE, "#FF5722");
+        Category transport = new Category(3L, "Transport", CategoryType.EXPENSE, "#2196F3");
+        Category entertainment = new Category(4L, "Entertainment", CategoryType.EXPENSE, "#9C27B0");
         
         mockCategories.put(1L, salary);
         mockCategories.put(2L, food);
