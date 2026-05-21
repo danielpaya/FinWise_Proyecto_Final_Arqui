@@ -1,9 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Plus } from 'lucide-react'
+import PageHeader from '../../components/shared/PageHeader'
+import StatsCard from '../../components/shared/StatsCard'
+import GoalCard from '../../components/goals/GoalCard'
+import LoadingSpinner from '../../components/shared/LoadingSpinner'
+import EmptyState from '../../components/shared/EmptyState'
+import { Button } from '../../components/ui/button'
 import { goalService } from '../../services/goalService'
 
 function GoalsPage() {
   const [goals, setGoals] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     loadGoals()
@@ -11,91 +19,112 @@ function GoalsPage() {
 
   const loadGoals = async () => {
     try {
+      setLoading(true)
+      setError(null)
       const response = await goalService.getAllGoals()
-      setGoals(response.data || [])
-    } catch (error) {
-      console.error('Error loading goals:', error)
+      if (response.success) {
+        setGoals(response.data || [])
+      }
+    } catch (err) {
+      setError('Failed to load goals')
+      console.error('Error loading goals:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this goal?')) {
-      try {
-        await goalService.deleteGoal(id)
-        loadGoals()
-      } catch (error) {
-        console.error('Error deleting goal:', error)
-      }
+  const handleContribute = async (goalId, amount) => {
+    try {
+      await goalService.contributeToGoal(goalId, amount)
+      await loadGoals()
+    } catch (err) {
+      console.error('Error contributing to goal:', err)
     }
   }
 
+  const totalTarget = goals.reduce((sum, g) => sum + (g.targetAmount || 0), 0)
+  const totalSaved = goals.reduce((sum, g) => sum + (g.currentAmount || 0), 0)
+  const averageProgress = goals.length > 0 
+    ? goals.reduce((sum, g) => sum + ((g.currentAmount || 0) / (g.targetAmount || 1)) * 100, 0) / goals.length
+    : 0
+
   if (loading) {
-    return <div className="text-center">Loading goals...</div>
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <EmptyState
+        icon={Plus}
+        title="Error loading goals"
+        description={error}
+        action={
+          <Button onClick={loadGoals}>Try Again</Button>
+        }
+      />
+    )
   }
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Savings Goals</h1>
+    <div className="space-y-6">
+      <PageHeader
+        title="Savings Goals"
+        description="Track your financial goals and milestones"
+      >
+        <Button>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Goal
+        </Button>
+      </PageHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {goals.length === 0 ? (
-          <div className="col-span-full bg-card border border-border rounded-lg p-6 text-center text-muted-foreground">
-            No savings goals set
-          </div>
-        ) : (
-          goals.map((goal) => (
-            <div
-              key={goal.id}
-              className={`bg-card border border-border rounded-lg p-6 ${
-                goal.achieved ? 'border-green-500' : ''
-              }`}
-            >
-              {goal.achieved && (
-                <div className="mb-4 text-green-500 font-bold">🎉 Achieved!</div>
-              )}
-              
-              <h3 className="text-xl font-bold mb-2">{goal.name}</h3>
-              
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Target</span>
-                  <span className="font-medium">${goal.targetAmount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Current</span>
-                  <span className="font-medium">${goal.currentAmount}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Progress</span>
-                  <span className="font-medium">{goal.progress.toFixed(1)}%</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Deadline</span>
-                  <span className="font-medium">{goal.deadline}</span>
-                </div>
-              </div>
-
-              <div className="w-full bg-muted rounded-full h-3 mb-4">
-                <div
-                  className={`h-3 rounded-full transition-all ${
-                    goal.achieved ? 'bg-green-500' : 'bg-primary'
-                  }`}
-                  style={{ width: `${Math.min(goal.progress, 100)}%` }}
-                />
-              </div>
-
-              <button
-                onClick={() => handleDelete(goal.id)}
-                className="w-full px-4 py-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-              >
-                Delete Goal
-              </button>
-            </div>
-          ))
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <StatsCard
+          title="Total Target"
+          value={`$${totalTarget.toLocaleString()}`}
+          change="All goals"
+          changeType="neutral"
+        />
+        <StatsCard
+          title="Total Saved"
+          value={`$${totalSaved.toLocaleString()}`}
+          change={`${averageProgress.toFixed(0)}% avg progress`}
+          changeType="positive"
+        />
+        <StatsCard
+          title="Active Goals"
+          value={goals.length}
+          change="in progress"
+          changeType="neutral"
+        />
       </div>
+
+      {goals.length === 0 ? (
+        <EmptyState
+          icon={Plus}
+          title="No savings goals"
+          description="Create your first savings goal to start tracking your progress"
+          action={
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Goal
+            </Button>
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {goals.map((goal) => (
+            <GoalCard
+              key={goal.id}
+              goal={goal}
+              onContribute={handleContribute}
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

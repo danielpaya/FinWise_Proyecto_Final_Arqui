@@ -1,105 +1,138 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import { Plus } from 'lucide-react'
+import PageHeader from '../../components/shared/PageHeader'
+import SearchBar from '../../components/shared/SearchBar'
+import TransactionTable from '../../components/transactions/TransactionTable'
+import TransactionFilters from '../../components/transactions/TransactionFilters'
+import AddTransactionDialog from '../../components/transactions/AddTransactionDialog'
+import LoadingSpinner from '../../components/shared/LoadingSpinner'
+import EmptyState from '../../components/shared/EmptyState'
+import { Button } from '../../components/ui/button'
 import { transactionService } from '../../services/transactionService'
 
 function TransactionsPage() {
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState('ALL')
+  const [error, setError] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filters, setFilters] = useState({
+    type: 'all',
+    category: 'all',
+    dateFrom: '',
+    dateTo: '',
+  })
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   useEffect(() => {
     loadTransactions()
-  }, [filter])
+  }, [])
 
   const loadTransactions = async () => {
     try {
       setLoading(true)
-      let response
-      if (filter === 'ALL') {
-        response = await transactionService.getAllTransactions()
-      } else {
-        response = await transactionService.getTransactionsByType(filter)
+      setError(null)
+      const response = await transactionService.getAllTransactions()
+      if (response.success) {
+        setTransactions(response.data || [])
       }
-      setTransactions(response.data || [])
-    } catch (error) {
-      console.error('Error loading transactions:', error)
+    } catch (err) {
+      setError('Failed to load transactions')
+      console.error('Error loading transactions:', err)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this transaction?')) {
-      try {
-        await transactionService.deleteTransaction(id)
-        loadTransactions()
-      } catch (error) {
-        console.error('Error deleting transaction:', error)
+  const handleAddTransaction = async (newTransaction) => {
+    try {
+      const response = await transactionService.createTransaction(newTransaction)
+      if (response.success) {
+        await loadTransactions()
+        setIsDialogOpen(false)
       }
+    } catch (err) {
+      console.error('Error adding transaction:', err)
     }
   }
 
+  const filteredTransactions = transactions.filter((transaction) => {
+    const matchesSearch = transaction.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         transaction.categoryName?.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesType = filters.type === 'all' || transaction.type === filters.type
+    const matchesCategory = filters.category === 'all' || transaction.categoryName === filters.category
+    const matchesDateFrom = !filters.dateFrom || transaction.date >= filters.dateFrom
+    const matchesDateTo = !filters.dateTo || transaction.date <= filters.dateTo
+
+    return matchesSearch && matchesType && matchesCategory && matchesDateFrom && matchesDateTo
+  })
+
   if (loading) {
-    return <div className="text-center">Loading transactions...</div>
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <EmptyState
+        icon={Plus}
+        title="Error loading transactions"
+        description={error}
+        action={
+          <Button onClick={loadTransactions}>Try Again</Button>
+        }
+      />
+    )
   }
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Transactions</h1>
+    <div className="space-y-6">
+      <PageHeader
+        title="Transactions"
+        description="View and manage all your transactions"
+      >
+        <Button onClick={() => setIsDialogOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Add Transaction
+        </Button>
+      </PageHeader>
 
-      {/* Filter Buttons */}
-      <div className="flex gap-2 mb-6">
-        {['ALL', 'INCOME', 'EXPENSE'].map((type) => (
-          <button
-            key={type}
-            onClick={() => setFilter(type)}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              filter === type
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted hover:bg-muted/80'
-            }`}
-          >
-            {type}
-          </button>
-        ))}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search transactions..."
+          className="lg:max-w-md"
+        />
+        <TransactionFilters
+          filters={filters}
+          onFilterChange={setFilters}
+        />
       </div>
 
-      {/* Transactions List */}
-      <div className="bg-card border border-border rounded-lg">
-        {transactions.length === 0 ? (
-          <div className="p-6 text-center text-muted-foreground">No transactions found</div>
-        ) : (
-          <div className="divide-y divide-border">
-            {transactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex-1">
-                  <p className="font-medium">{transaction.description}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {transaction.category?.name} • {transaction.date}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4">
-                  <p
-                    className={`text-lg font-bold ${
-                      transaction.type === 'INCOME' ? 'text-green-500' : 'text-red-500'
-                    }`}
-                  >
-                    {transaction.type === 'INCOME' ? '+' : '-'}${transaction.amount}
-                  </p>
-                  <button
-                    onClick={() => handleDelete(transaction.id)}
-                    className="text-destructive hover:underline text-sm"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      {filteredTransactions.length === 0 ? (
+        <EmptyState
+          icon={Plus}
+          title="No transactions found"
+          description="Get started by adding your first transaction"
+          action={
+            <Button onClick={() => setIsDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Transaction
+            </Button>
+          }
+        />
+      ) : (
+        <TransactionTable transactions={filteredTransactions} />
+      )}
+
+      <AddTransactionDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onAdd={handleAddTransaction}
+      />
     </div>
   )
 }

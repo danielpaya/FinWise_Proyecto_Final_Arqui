@@ -1,110 +1,63 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { authService } from '../../services/authService'
+import AuthCard from '../../components/auth/AuthCard'
+import RegisterForm from '../../components/auth/RegisterForm'
 
 function RegisterPage() {
-  const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const [error, setError] = useState('')
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
+  const handleRegister = async (formData) => {
     try {
-      const response = await authService.register(name, email, password)
-      if (response.success) {
-        // Auto login after registration
-        const loginResponse = await authService.login(email, password)
-        if (loginResponse.success) {
-          login(loginResponse.data.user, loginResponse.data.token)
-          navigate('/')
-        }
+      setError('')
+      const response = await authService.register(formData.name, formData.email, formData.password)
+      
+      if (response.success && response.data) {
+        login(response.data.user, response.data.token)
+        navigate('/dashboard')
       } else {
         setError(response.message || 'Registration failed')
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.')
-    } finally {
-      setLoading(false)
     }
   }
 
   return (
-    <div className="bg-card border border-border rounded-lg p-6">
-      <h2 className="text-2xl font-bold mb-6">Register</h2>
-      
-      {error && (
-        <div className="bg-destructive/10 text-destructive p-3 rounded-lg mb-4">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium mb-2">
-            Name
-          </label>
-          <input
-            id="name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-            required
-          />
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo and Header */}
+        <div className="text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary mb-4">
+            <span className="text-2xl font-bold text-primary-foreground">FW</span>
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight">Create an account</h1>
+          <p className="mt-2 text-muted-foreground">
+            Start your financial journey with FinWise AI
+          </p>
         </div>
 
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-2">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-            required
-          />
-        </div>
+        {/* Register Form */}
+        <AuthCard>
+          {error && (
+            <div className="mb-4 rounded-lg bg-destructive/10 p-3 text-destructive text-sm">
+              {error}
+            </div>
+          )}
+          <RegisterForm onSubmit={handleRegister} />
+        </AuthCard>
 
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium mb-2">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-            required
-            minLength={8}
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
-          {loading ? 'Creating account...' : 'Register'}
-        </button>
-      </form>
-
-      <p className="mt-4 text-center text-sm text-muted-foreground">
-        Already have an account?{' '}
-        <Link to="/auth/login" className="text-primary hover:underline">
-          Login
-        </Link>
-      </p>
+        {/* Login Link */}
+        <p className="text-center text-sm text-muted-foreground">
+          Already have an account?{' '}
+          <Link to="/auth/login" className="font-medium text-primary hover:underline">
+            Sign in
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }

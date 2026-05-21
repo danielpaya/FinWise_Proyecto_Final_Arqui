@@ -1,90 +1,63 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { authService } from '../../services/authService'
+import AuthCard from '../../components/auth/AuthCard'
+import LoginForm from '../../components/auth/LoginForm'
 
 function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const [error, setError] = useState('')
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
+  const handleLogin = async (formData) => {
     try {
-      const response = await authService.login(email, password)
-      if (response.success) {
+      setError('')
+      const response = await authService.login(formData.email, formData.password)
+      
+      if (response.success && response.data) {
         login(response.data.user, response.data.token)
-        navigate('/')
+        navigate('/dashboard')
       } else {
         setError(response.message || 'Login failed')
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.')
-    } finally {
-      setLoading(false)
     }
   }
 
   return (
-    <div className="bg-card border border-border rounded-lg p-6">
-      <h2 className="text-2xl font-bold mb-6">Login</h2>
-      
-      {error && (
-        <div className="bg-destructive/10 text-destructive p-3 rounded-lg mb-4">
-          {error}
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium mb-2">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full px-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-            required
-          />
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted/20 p-4">
+      <div className="w-full max-w-md space-y-8">
+        {/* Logo and Header */}
+        <div className="text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary mb-4">
+            <span className="text-2xl font-bold text-primary-foreground">FW</span>
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight">Welcome back</h1>
+          <p className="mt-2 text-muted-foreground">
+            Sign in to your FinWise AI account
+          </p>
         </div>
 
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium mb-2">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full px-4 py-2 bg-background border border-input rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-            required
-          />
-        </div>
+        {/* Login Form */}
+        <AuthCard>
+          {error && (
+            <div className="mb-4 rounded-lg bg-destructive/10 p-3 text-destructive text-sm">
+              {error}
+            </div>
+          )}
+          <LoginForm onSubmit={handleLogin} />
+        </AuthCard>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
-        >
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
-
-      <p className="mt-4 text-center text-sm text-muted-foreground">
-        Don't have an account?{' '}
-        <Link to="/auth/register" className="text-primary hover:underline">
-          Register
-        </Link>
-      </p>
+        {/* Sign Up Link */}
+        <p className="text-center text-sm text-muted-foreground">
+          Don't have an account?{' '}
+          <Link to="/auth/register" className="font-medium text-primary hover:underline">
+            Sign up for free
+          </Link>
+        </p>
+      </div>
     </div>
   )
 }

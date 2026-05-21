@@ -1,12 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
+import PageHeader from '../../components/shared/PageHeader'
+import StatsCard from '../../components/shared/StatsCard'
+import SectionTitle from '../../components/shared/SectionTitle'
+import ExpensesChart from '../../components/charts/ExpensesChart'
+import IncomeExpenseChart from '../../components/charts/IncomeExpenseChart'
+import BudgetChart from '../../components/charts/BudgetChart'
+import SavingsChart from '../../components/charts/SavingsChart'
+import LoadingSpinner from '../../components/shared/LoadingSpinner'
+import EmptyState from '../../components/shared/EmptyState'
 import { reportService } from '../../services/reportService'
 
 function ReportsPage() {
-  const [monthlyReport, setMonthlyReport] = useState(null)
-  const [categoryReport, setCategoryReport] = useState([])
-  const [loading, setLoading] = useState(true)
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
+  const [monthlyData, setMonthlyData] = useState(null)
+  const [categoryData, setCategoryData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     loadReports()
@@ -15,36 +25,67 @@ function ReportsPage() {
   const loadReports = async () => {
     try {
       setLoading(true)
-      const [monthlyRes, categoryRes] = await Promise.all([
+      setError(null)
+      
+      const [monthlyResponse, categoryResponse] = await Promise.all([
         reportService.getMonthlyReport(selectedMonth, selectedYear),
-        reportService.getCategoryReport('EXPENSE'),
+        reportService.getCategoryReport('EXPENSE')
       ])
 
-      setMonthlyReport(monthlyRes.data)
-      setCategoryReport(categoryRes.data || [])
-    } catch (error) {
-      console.error('Error loading reports:', error)
+      if (monthlyResponse.success) {
+        setMonthlyData(monthlyResponse.data)
+      }
+      if (categoryResponse.success) {
+        setCategoryData(categoryResponse.data || [])
+      }
+    } catch (err) {
+      setError('Failed to load reports')
+      console.error('Error loading reports:', err)
     } finally {
       setLoading(false)
     }
   }
 
   if (loading) {
-    return <div className="text-center">Loading reports...</div>
+    return (
+      <div className="flex items-center justify-center h-64">
+        <LoadingSpinner />
+      </div>
+    )
   }
 
+  if (error) {
+    return (
+      <EmptyState
+        title="Error loading reports"
+        description={error}
+        action={
+          <button onClick={loadReports}>Try Again</button>
+        }
+      />
+    )
+  }
+
+  const totalIncome = monthlyData?.totalIncome || 0
+  const totalExpenses = monthlyData?.totalExpenses || 0
+  const balance = monthlyData?.balance || 0
+  const savingsRate = monthlyData?.savingsRate || 0
+
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Reports</h1>
+    <div className="space-y-6">
+      <PageHeader
+        title="Reports & Analytics"
+        description="Detailed financial insights and trends"
+      />
 
       {/* Month/Year Selector */}
-      <div className="flex gap-4 mb-8">
+      <div className="flex gap-4">
         <div>
           <label className="block text-sm font-medium mb-2">Month</label>
           <select
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="px-4 py-2 bg-background border border-input rounded-lg"
+            className="rounded-lg border border-border bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           >
             {Array.from({ length: 12 }, (_, i) => (
               <option key={i + 1} value={i + 1}>
@@ -58,7 +99,7 @@ function ReportsPage() {
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-4 py-2 bg-background border border-input rounded-lg"
+            className="rounded-lg border border-border bg-background px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           >
             {Array.from({ length: 5 }, (_, i) => (
               <option key={i} value={new Date().getFullYear() - i}>
@@ -69,81 +110,104 @@ function ReportsPage() {
         </div>
       </div>
 
-      {monthlyReport && (
-        <>
-          {/* Monthly Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-card border border-border rounded-lg p-6">
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">Total Income</h3>
-              <p className="text-3xl font-bold text-green-500">${monthlyReport.totalIncome}</p>
-            </div>
-            <div className="bg-card border border-border rounded-lg p-6">
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">Total Expenses</h3>
-              <p className="text-3xl font-bold text-red-500">${monthlyReport.totalExpenses}</p>
-            </div>
-            <div className="bg-card border border-border rounded-lg p-6">
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">Balance</h3>
-              <p className="text-3xl font-bold">${monthlyReport.balance}</p>
-            </div>
-          </div>
+      {/* Monthly Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <StatsCard
+          title="Total Income"
+          value={`$${totalIncome.toLocaleString()}`}
+          change="This month"
+          changeType="positive"
+        />
+        <StatsCard
+          title="Total Expenses"
+          value={`$${totalExpenses.toLocaleString()}`}
+          change="This month"
+          changeType="negative"
+        />
+        <StatsCard
+          title="Net Balance"
+          value={`$${balance.toLocaleString()}`}
+          change="This month"
+          changeType={balance >= 0 ? 'positive' : 'negative'}
+        />
+        <StatsCard
+          title="Savings Rate"
+          value={`${savingsRate.toFixed(1)}%`}
+          change="This month"
+          changeType="positive"
+        />
+      </div>
 
-          {/* Expenses by Category */}
-          <div className="bg-card border border-border rounded-lg p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4">Expenses by Category</h2>
-            <div className="space-y-3">
-              {Object.entries(monthlyReport.expensesByCategory || {}).map(([category, amount]) => (
-                <div key={category} className="flex items-center justify-between">
-                  <span className="font-medium">{category}</span>
-                  <span className="font-bold">${amount}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <SectionTitle title="Income vs Expenses" description="Monthly comparison" />
+          <IncomeExpenseChart />
+        </div>
 
-          {/* Income by Category */}
-          <div className="bg-card border border-border rounded-lg p-6 mb-8">
-            <h2 className="text-xl font-bold mb-4">Income by Category</h2>
-            <div className="space-y-3">
-              {Object.entries(monthlyReport.incomeByCategory || {}).map(([category, amount]) => (
-                <div key={category} className="flex items-center justify-between">
-                  <span className="font-medium">{category}</span>
-                  <span className="font-bold">${amount}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </>
-      )}
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <SectionTitle title="Expenses by Category" description="Distribution breakdown" />
+          <ExpensesChart />
+        </div>
 
-      {/* Category Report */}
-      <div className="bg-card border border-border rounded-lg p-6">
-        <h2 className="text-xl font-bold mb-4">Category Analysis</h2>
-        {categoryReport.length === 0 ? (
-          <p className="text-muted-foreground">No category data available</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left p-3">Category</th>
-                  <th className="text-right p-3">Total Amount</th>
-                  <th className="text-right p-3">Transactions</th>
-                  <th className="text-right p-3">Average</th>
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <SectionTitle title="Budget vs Actual" description="Spending vs limits" />
+          <BudgetChart />
+        </div>
+
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm">
+          <SectionTitle title="Savings Growth" description="Total savings over time" />
+          <SavingsChart />
+        </div>
+      </div>
+
+      {/* Category Analysis Table */}
+      <div className="rounded-xl border border-border bg-card shadow-sm">
+        <div className="border-b border-border px-6 py-4">
+          <SectionTitle title="Category Analysis" description="Detailed breakdown by category" />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Category
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Total Amount
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Transactions
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  Average
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  % of Total
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {categoryData.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">
+                    No category data available
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {categoryReport.map((cat) => (
-                  <tr key={cat.categoryName} className="border-b border-border">
-                    <td className="p-3 font-medium">{cat.categoryName}</td>
-                    <td className="p-3 text-right">${cat.totalAmount}</td>
-                    <td className="p-3 text-right">{cat.transactionCount}</td>
-                    <td className="p-3 text-right">${cat.averageAmount.toFixed(2)}</td>
+              ) : (
+                categoryData.map((category, index) => (
+                  <tr key={index} className="hover:bg-muted/50 transition-colors">
+                    <td className="px-6 py-4 font-medium">{category.categoryName || 'N/A'}</td>
+                    <td className="px-6 py-4 text-right">${(category.totalAmount || 0).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-right">{category.transactionCount || 0}</td>
+                    <td className="px-6 py-4 text-right">${(category.averageAmount || 0).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-right">{(category.percentage || 0).toFixed(1)}%</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
