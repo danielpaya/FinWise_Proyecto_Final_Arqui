@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { X, Plus } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { Button } from '../ui/button'
@@ -10,16 +10,38 @@ const categories = [
   { id: 6, name: 'Entertainment', type: 'EXPENSE' },
 ]
 
-function AddTransactionDialog({ isOpen, onClose, onAdd }) {
-  const [formData, setFormData] = useState({
-    description: '',
-    amount: '',
-    type: 'EXPENSE',
-    categoryId: '',
-    date: new Date().toISOString().split('T')[0],
-  })
+const emptyForm = {
+  description: '',
+  amount: '',
+  type: 'EXPENSE',
+  categoryId: '',
+  date: new Date().toISOString().split('T')[0],
+}
 
+function AddTransactionDialog({ isOpen, onClose, onAdd, transaction }) {
+  const [formData, setFormData] = useState(emptyForm)
   const [errors, setErrors] = useState({})
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    if (transaction) {
+      setFormData({
+        description: transaction.description || '',
+        amount: transaction.amount || '',
+        type: transaction.type || 'EXPENSE',
+        categoryId: transaction.category?.id || transaction.categoryId || '',
+        date: transaction.date || new Date().toISOString().split('T')[0],
+      })
+    } else {
+      setFormData({
+        ...emptyForm,
+        date: new Date().toISOString().split('T')[0],
+      })
+    }
+
+    setErrors({})
+  }, [isOpen, transaction])
 
   if (!isOpen) return null
 
@@ -73,10 +95,7 @@ function AddTransactionDialog({ isOpen, onClose, onAdd }) {
     })
 
     setFormData({
-      description: '',
-      amount: '',
-      type: 'EXPENSE',
-      categoryId: '',
+      ...emptyForm,
       date: new Date().toISOString().split('T')[0],
     })
 
@@ -87,7 +106,9 @@ function AddTransactionDialog({ isOpen, onClose, onAdd }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="w-full max-w-md rounded-xl border border-border bg-card shadow-lg">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-lg font-semibold">Add Transaction</h2>
+          <h2 className="text-lg font-semibold">
+            {transaction ? 'Edit Transaction' : 'Add Transaction'}
+          </h2>
           <button
             onClick={onClose}
             className="rounded-lg p-2 hover:bg-muted transition-colors"
@@ -206,7 +227,7 @@ function AddTransactionDialog({ isOpen, onClose, onAdd }) {
 
             <Button type="submit" className="flex-1">
               <Plus className="mr-2 h-4 w-4" />
-              Add Transaction
+              {transaction ? 'Update Transaction' : 'Add Transaction'}
             </Button>
           </div>
         </form>

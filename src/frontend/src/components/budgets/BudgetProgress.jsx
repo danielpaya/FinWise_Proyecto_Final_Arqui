@@ -1,11 +1,14 @@
 import { cn } from '../../lib/utils'
 
-function BudgetProgress({ spent, limit, className }) {
-  const percentage = (spent / limit) * 100
-  
+function BudgetProgress({ spent = 0, limit = 0, className }) {
+  const spentAmount = Number(spent || 0)
+  const limitAmount = Number(limit || 0)
+
+  const percentage = limitAmount > 0 ? (spentAmount / limitAmount) * 100 : 0
+
   const getStatusColor = () => {
-    if (percentage >= 90) return 'bg-red-500'
-    if (percentage >= 70) return 'bg-yellow-500'
+    if (percentage >= 100) return 'bg-red-500'
+    if (percentage >= 80) return 'bg-yellow-500'
     return 'bg-green-500'
   }
 
@@ -15,17 +18,20 @@ function BudgetProgress({ spent, limit, className }) {
         <span className="text-muted-foreground">Progress</span>
         <span className="font-medium">{percentage.toFixed(0)}%</span>
       </div>
-      
+
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className={cn('h-full rounded-full transition-all duration-500', getStatusColor())}
+          className={cn(
+            'h-full rounded-full transition-all duration-500',
+            getStatusColor()
+          )}
           style={{ width: `${Math.min(percentage, 100)}%` }}
         />
       </div>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>${spent.toLocaleString()} spent</span>
-        <span>${limit.toLocaleString()} limit</span>
+        <span>${spentAmount.toLocaleString()} spent</span>
+        <span>${limitAmount.toLocaleString()} limit</span>
       </div>
     </div>
   )

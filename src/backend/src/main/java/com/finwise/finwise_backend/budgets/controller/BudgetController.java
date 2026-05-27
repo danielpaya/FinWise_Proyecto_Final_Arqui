@@ -40,6 +40,21 @@ public class BudgetController {
         return ApiResponse.success(budgetService.getBudgetsByMonth(month, year));
     }
     
+    @GetMapping("/user/{userId}")
+    @Operation(summary = "Get budgets by user")
+    public ApiResponse<List<BudgetResponse>> getBudgetsByUser(@PathVariable Long userId) {
+        return ApiResponse.success(budgetService.getBudgetsByUser(userId));
+    }
+
+    @GetMapping("/user/{userId}/month/{month}/year/{year}")
+    @Operation(summary = "Get budgets by user, month and year")
+    public ApiResponse<List<BudgetResponse>> getBudgetsByUserAndMonth(
+            @PathVariable Long userId,
+            @PathVariable Integer month,
+            @PathVariable Integer year) {
+        return ApiResponse.success(budgetService.getBudgetsByUserAndMonth(userId, month, year));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get budget by ID")
     public ApiResponse<BudgetResponse> getBudgetById(@PathVariable Long id) {

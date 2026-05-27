@@ -1,25 +1,33 @@
 import { cn } from '../../lib/utils'
 
-function GoalProgress({ current, target, color = 'bg-primary', className }) {
-  const progress = (current / target) * 100
+function GoalProgress({ current = 0, target = 0, progress, className }) {
+  const currentAmount = Number(current || 0)
+  const targetAmount = Number(target || 0)
+
+  const percentage =
+    progress !== undefined && progress !== null
+      ? Number(progress)
+      : targetAmount > 0
+        ? (currentAmount / targetAmount) * 100
+        : 0
 
   return (
     <div className={cn('space-y-2', className)}>
       <div className="flex items-center justify-between text-sm">
         <span className="text-muted-foreground">Progress</span>
-        <span className="font-medium">{progress.toFixed(0)}%</span>
+        <span className="font-medium">{percentage.toFixed(0)}%</span>
       </div>
-      
+
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className={cn('h-full rounded-full transition-all duration-500', color)}
-          style={{ width: `${Math.min(progress, 100)}%` }}
+          className="h-full rounded-full bg-primary transition-all duration-500"
+          style={{ width: `${Math.min(percentage, 100)}%` }}
         />
       </div>
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>${current.toLocaleString()} saved</span>
-        <span>${target.toLocaleString()} goal</span>
+        <span>${currentAmount.toLocaleString()} saved</span>
+        <span>${targetAmount.toLocaleString()} target</span>
       </div>
     </div>
   )

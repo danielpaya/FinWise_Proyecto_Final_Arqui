@@ -3,145 +3,129 @@ package com.finwise.finwise_backend.budgets.service;
 import com.finwise.finwise_backend.budgets.dto.BudgetRequest;
 import com.finwise.finwise_backend.budgets.dto.BudgetResponse;
 import com.finwise.finwise_backend.budgets.model.Budget;
+import com.finwise.finwise_backend.budgets.repository.BudgetRepository;
 import com.finwise.finwise_backend.categories.model.Category;
-import com.finwise.finwise_backend.shared.enums.CategoryType;
+import com.finwise.finwise_backend.categories.repository.CategoryRepository;
 import com.finwise.finwise_backend.shared.exception.ResourceNotFoundException;
+import com.finwise.finwise_backend.users.model.User;
+import com.finwise.finwise_backend.users.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class BudgetService {
-    
-    private final AtomicLong idCounter = new AtomicLong(1);
-    private final Map<Long, Budget> mockBudgets = new ConcurrentHashMap<>();
-    private final Map<Long, Category> mockCategories = new ConcurrentHashMap<>();
-    
-    public BudgetService() {
-        initializeMockData();
-    }
-    
-    private void initializeMockData() {
-        // Create mock categories
-        Category food = new Category(1L, "Food", CategoryType.EXPENSE, "#FF5722");
-        Category transport = new Category(2L, "Transport", CategoryType.EXPENSE, "#2196F3");
-        Category entertainment = new Category(3L, "Entertainment", CategoryType.EXPENSE, "#9C27B0");
-        
-        mockCategories.put(1L, food);
-        mockCategories.put(2L, transport);
-        mockCategories.put(3L, entertainment);
-        
-        YearMonth currentMonth = YearMonth.now();
-        
-        // Create mock budgets
-        Budget b1 = createMockBudget(1L, BigDecimal.valueOf(500), currentMonth.getMonthValue(), currentMonth.getYear(), food, BigDecimal.valueOf(150));
-        Budget b2 = createMockBudget(2L, BigDecimal.valueOf(200), currentMonth.getMonthValue(), currentMonth.getYear(), transport, BigDecimal.valueOf(50));
-        Budget b3 = createMockBudget(3L, BigDecimal.valueOf(300), currentMonth.getMonthValue(), currentMonth.getYear(), entertainment, BigDecimal.valueOf(100));
-        
-        mockBudgets.put(1L, b1);
-        mockBudgets.put(2L, b2);
-        mockBudgets.put(3L, b3);
-    }
-    
-    private Budget createMockBudget(Long id, BigDecimal limitAmount, Integer month, Integer year, Category category, BigDecimal spentAmount) {
-        Budget budget = new Budget();
-        budget.setId(id);
-        budget.setLimitAmount(limitAmount);
-        budget.setSpentAmount(spentAmount);
-        budget.setMonth(month);
-        budget.setYear(year);
-        budget.setCategory(category);
-        return budget;
-    }
-    
+
+    private final BudgetRepository budgetRepository;
+    private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
+
     public List<BudgetResponse> getAllBudgets() {
-        return mockBudgets.values().stream()
+        return budgetRepository.findAll()
+                .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
-    
+
     public List<BudgetResponse> getBudgetsByMonth(Integer month, Integer year) {
-        return mockBudgets.values().stream()
-                .filter(b -> b.getMonth().equals(month) && b.getYear().equals(year))
+        return budgetRepository.findByMonthAndYear(month, year)
+                .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
-    
+
     public List<BudgetResponse> getCurrentMonthBudgets() {
         YearMonth currentMonth = YearMonth.now();
         return getBudgetsByMonth(currentMonth.getMonthValue(), currentMonth.getYear());
     }
-    
+
+    public List<BudgetResponse> getBudgetsByUser(Long userId) {
+        return budgetRepository.findByUserId(userId)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    public List<BudgetResponse> getBudgetsByUserAndMonth(Long userId, Integer month, Integer year) {
+        return budgetRepository.findByUserIdAndMonthAndYear(userId, month, year)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     public BudgetResponse getBudgetById(Long id) {
-        Budget budget = mockBudgets.get(id);
-        if (budget == null) {
-            throw new ResourceNotFoundException("Budget", id);
-        }
+        Budget budget = budgetRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Budget", id));
+
         return mapToResponse(budget);
     }
-    
+
     public BudgetResponse createBudget(BudgetRequest request) {
-        Category category = mockCategories.get(request.getCategoryId());
-        if (category == null) {
-            throw new ResourceNotFoundException("Category", request.getCategoryId());
-        }
-        
-        Budget budget = createMockBudget(
-                idCounter.getAndIncrement(),
-                request.getLimitAmount(),
-                request.getMonth(),
-                request.getYear(),
-                category,
-                BigDecimal.ZERO
-        );
-        
-        mockBudgets.put(budget.getId(), budget);
-        return mapToResponse(budget);
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category", request.getCategoryId()));
+
+        User user = userRepository.findById(1L)
+                .orElseThrow(() -> new ResourceNotFoundException("User", 1L));
+
+        Budget budget = new Budget();
+        budget.setLimitAmount(request.getLimitAmount());
+        budget.setSpentAmount(BigDecimal.ZERO);
+        budget.setMonth(request.getMonth());
+        budget.setYear(request.getYear());
+        budget.setCategory(category);
+        budget.setUser(user);
+
+        Budget savedBudget = budgetRepository.save(budget);
+
+        return mapToResponse(savedBudget);
     }
-    
+
     public BudgetResponse updateBudget(Long id, BudgetRequest request) {
-        Budget budget = mockBudgets.get(id);
-        if (budget == null) {
-            throw new ResourceNotFoundException("Budget", id);
-        }
-        
-        Category category = mockCategories.get(request.getCategoryId());
-        if (category == null) {
-            throw new ResourceNotFoundException("Category", request.getCategoryId());
-        }
-        
+        Budget budget = budgetRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Budget", id));
+
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category", request.getCategoryId()));
+
         budget.setLimitAmount(request.getLimitAmount());
         budget.setMonth(request.getMonth());
         budget.setYear(request.getYear());
         budget.setCategory(category);
-        
-        return mapToResponse(budget);
+
+        Budget updatedBudget = budgetRepository.save(budget);
+
+        return mapToResponse(updatedBudget);
     }
-    
+
     public void deleteBudget(Long id) {
-        Budget budget = mockBudgets.get(id);
-        if (budget == null) {
+        if (!budgetRepository.existsById(id)) {
             throw new ResourceNotFoundException("Budget", id);
         }
-        mockBudgets.remove(id);
+
+        budgetRepository.deleteById(id);
     }
-    
+
     private BudgetResponse mapToResponse(Budget budget) {
+        BigDecimal spentAmount = budget.getSpentAmount() != null
+                ? budget.getSpentAmount()
+                : BigDecimal.ZERO;
+
         BudgetResponse response = new BudgetResponse();
         response.setId(budget.getId());
         response.setLimitAmount(budget.getLimitAmount());
-        response.setSpentAmount(budget.getSpentAmount());
-        response.setRemainingAmount(budget.getLimitAmount().subtract(budget.getSpentAmount()));
+        response.setSpentAmount(spentAmount);
+        response.setRemainingAmount(budget.getLimitAmount().subtract(spentAmount));
         response.setMonth(budget.getMonth());
         response.setYear(budget.getYear());
-        response.setCategoryName(budget.getCategory().getName());
+        response.setCategoryName(
+                budget.getCategory() != null ? budget.getCategory().getName() : "No category"
+        );
+
         return response;
     }
 }

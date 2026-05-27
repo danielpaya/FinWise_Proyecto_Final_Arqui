@@ -1,7 +1,7 @@
-import { MoreHorizontal, ArrowUpRight, ArrowDownRight } from 'lucide-react'
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
-function TransactionTable({ transactions = [] }) {
+function TransactionTable({ transactions = [], onEdit, onDelete }) {
   return (
     <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
@@ -92,9 +92,23 @@ function TransactionTable({ transactions = [] }) {
                   </td>
 
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <button className="rounded-lg p-2 hover:bg-muted transition-colors">
-                      <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-                    </button>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onEdit(transaction)}
+                        className="rounded-lg px-3 py-1 text-xs bg-muted hover:bg-muted/80 transition-colors"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => onDelete(transaction.id)}
+                        className="rounded-lg px-3 py-1 text-xs bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )

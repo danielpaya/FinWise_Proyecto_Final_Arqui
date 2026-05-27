@@ -21,7 +21,9 @@ function TransactionsPage() {
     dateFrom: '',
     dateTo: '',
   })
+
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [editingTransaction, setEditingTransaction] = useState(null)
 
   useEffect(() => {
     loadTransactions()
@@ -31,9 +33,13 @@ function TransactionsPage() {
     try {
       setLoading(true)
       setError(null)
+
       const response = await transactionService.getAllTransactions()
+
       if (response.success) {
         setTransactions(response.data || [])
+      } else {
+        setError(response.message || 'Failed to load transactions')
       }
     } catch (err) {
       setError('Failed to load transactions')
@@ -43,15 +49,55 @@ function TransactionsPage() {
     }
   }
 
-  const handleAddTransaction = async (newTransaction) => {
+  const handleOpenCreateDialog = () => {
+    setEditingTransaction(null)
+    setIsDialogOpen(true)
+  }
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false)
+    setEditingTransaction(null)
+  }
+
+  const handleSaveTransaction = async (transactionData) => {
     try {
-      const response = await transactionService.createTransaction(newTransaction)
+      const response = editingTransaction
+        ? await transactionService.updateTransaction(editingTransaction.id, transactionData)
+        : await transactionService.createTransaction(transactionData)
+
       if (response.success) {
         await loadTransactions()
-        setIsDialogOpen(false)
+        handleCloseDialog()
+      } else {
+        alert(response.message || 'Transaction could not be saved')
       }
     } catch (err) {
-      console.error('Error adding transaction:', err)
+      console.error('Error saving transaction:', err)
+      alert('Error saving transaction')
+    }
+  }
+
+  const handleEditTransaction = (transaction) => {
+    setEditingTransaction(transaction)
+    setIsDialogOpen(true)
+  }
+
+  const handleDeleteTransaction = async (id) => {
+    const confirmDelete = window.confirm('Are you sure you want to delete this transaction?')
+
+    if (!confirmDelete) return
+
+    try {
+      const response = await transactionService.deleteTransaction(id)
+
+      if (response.success) {
+        await loadTransactions()
+      } else {
+        alert(response.message || 'Transaction could not be deleted')
+      }
+    } catch (err) {
+      console.error('Error deleting transaction:', err)
+      alert('Error deleting transaction')
     }
   }
 
@@ -100,7 +146,7 @@ function TransactionsPage() {
         title="Transactions"
         description="View and manage all your transactions"
       >
-        <Button onClick={() => setIsDialogOpen(true)}>
+        <Button onClick={handleOpenCreateDialog}>
           <Plus className="mr-2 h-4 w-4" />
           Add Transaction
         </Button>
@@ -125,20 +171,25 @@ function TransactionsPage() {
           title="No transactions found"
           description="Get started by adding your first transaction"
           action={
-            <Button onClick={() => setIsDialogOpen(true)}>
+            <Button onClick={handleOpenCreateDialog}>
               <Plus className="mr-2 h-4 w-4" />
               Add Transaction
             </Button>
           }
         />
       ) : (
-        <TransactionTable transactions={filteredTransactions} />
+        <TransactionTable
+          transactions={filteredTransactions}
+          onEdit={handleEditTransaction}
+          onDelete={handleDeleteTransaction}
+        />
       )}
 
       <AddTransactionDialog
         isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        onAdd={handleAddTransaction}
+        onClose={handleCloseDialog}
+        onAdd={handleSaveTransaction}
+        transaction={editingTransaction}
       />
     </div>
   )

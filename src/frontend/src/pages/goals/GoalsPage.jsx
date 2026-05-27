@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import PageHeader from '../../components/shared/PageHeader'
 import StatsCard from '../../components/shared/StatsCard'
 import GoalCard from '../../components/goals/GoalCard'
+import AddGoalDialog from '../../components/goals/AddGoalDialog'
 import LoadingSpinner from '../../components/shared/LoadingSpinner'
 import EmptyState from '../../components/shared/EmptyState'
 import { Button } from '../../components/ui/button'
@@ -12,6 +13,7 @@ function GoalsPage() {
   const [goals, setGoals] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   useEffect(() => {
     loadGoals()
@@ -21,15 +23,35 @@ function GoalsPage() {
     try {
       setLoading(true)
       setError(null)
+
       const response = await goalService.getAllGoals()
+
       if (response.success) {
         setGoals(response.data || [])
+      } else {
+        setError(response.message || 'Failed to load goals')
       }
     } catch (err) {
       setError('Failed to load goals')
       console.error('Error loading goals:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAddGoal = async (goalData) => {
+    try {
+      const response = await goalService.createGoal(goalData)
+
+      if (response.success) {
+        await loadGoals()
+        setIsDialogOpen(false)
+      } else {
+        alert(response.message || 'Goal could not be created')
+      }
+    } catch (err) {
+      console.error('Error creating goal:', err)
+      alert('Error creating goal. Check console or backend logs.')
     }
   }
 
@@ -42,11 +64,24 @@ function GoalsPage() {
     }
   }
 
-  const totalTarget = goals.reduce((sum, g) => sum + (g.targetAmount || 0), 0)
-  const totalSaved = goals.reduce((sum, g) => sum + (g.currentAmount || 0), 0)
-  const averageProgress = goals.length > 0 
-    ? goals.reduce((sum, g) => sum + ((g.currentAmount || 0) / (g.targetAmount || 1)) * 100, 0) / goals.length
-    : 0
+  const totalTarget = goals.reduce(
+    (sum, g) => sum + Number(g.targetAmount || 0),
+    0
+  )
+
+  const totalSaved = goals.reduce(
+    (sum, g) => sum + Number(g.currentAmount || 0),
+    0
+  )
+
+  const averageProgress =
+    goals.length > 0
+      ? goals.reduce((sum, g) => {
+          const target = Number(g.targetAmount || 0)
+          const current = Number(g.currentAmount || 0)
+          return sum + (target > 0 ? (current / target) * 100 : 0)
+        }, 0) / goals.length
+      : 0
 
   if (loading) {
     return (
@@ -62,9 +97,7 @@ function GoalsPage() {
         icon={Plus}
         title="Error loading goals"
         description={error}
-        action={
-          <Button onClick={loadGoals}>Try Again</Button>
-        }
+        action={<Button onClick={loadGoals}>Try Again</Button>}
       />
     )
   }
@@ -75,7 +108,7 @@ function GoalsPage() {
         title="Savings Goals"
         description="Track your financial goals and milestones"
       >
-        <Button>
+        <Button onClick={() => setIsDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Goal
         </Button>
@@ -108,7 +141,7 @@ function GoalsPage() {
           title="No savings goals"
           description="Create your first savings goal to start tracking your progress"
           action={
-            <Button>
+            <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Add Goal
             </Button>
@@ -125,6 +158,12 @@ function GoalsPage() {
           ))}
         </div>
       )}
+
+      <AddGoalDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        onAdd={handleAddGoal}
+      />
     </div>
   )
 }

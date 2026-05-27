@@ -26,6 +26,12 @@ public class SavingGoalController {
     public ApiResponse<List<GoalResponse>> getAllGoals() {
         return ApiResponse.success(goalService.getAllGoals());
     }
+
+    @GetMapping("/user/{userId}")
+    @Operation(summary = "Get goals by user")
+    public ApiResponse<List<GoalResponse>> getGoalsByUser(@PathVariable Long userId) {
+        return ApiResponse.success(goalService.getGoalsByUser(userId));
+    }
     
     @GetMapping("/{id}")
     @Operation(summary = "Get goal by ID")
