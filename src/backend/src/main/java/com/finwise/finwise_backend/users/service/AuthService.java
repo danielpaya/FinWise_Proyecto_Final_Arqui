@@ -6,71 +6,57 @@ import com.finwise.finwise_backend.users.dto.LoginRequest;
 import com.finwise.finwise_backend.users.dto.RegisterRequest;
 import com.finwise.finwise_backend.users.dto.UserResponse;
 import com.finwise.finwise_backend.users.model.User;
+import com.finwise.finwise_backend.users.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
+@RequiredArgsConstructor
 public class AuthService {
-    
-    private final AtomicLong idCounter = new AtomicLong(1);
-    private final Map<String, User> mockUsers = new HashMap<>();
-    
-    public AuthService() {
-        // Initialize with some mock data
-        User mockUser = new User();
-        mockUser.setId(idCounter.getAndIncrement());
-        mockUser.setName("Test User");
-        mockUser.setEmail("test@example.com");
-        mockUser.setPassword("password123");
-        mockUser.setRole(Role.USER);
-        mockUser.setCreatedAt(LocalDateTime.now());
-        mockUsers.put("test@example.com", mockUser);
-    }
-    
+
+    private final UserRepository userRepository;
+
     public ApiResponse<UserResponse> register(RegisterRequest request) {
-        // Check if email already exists
-        if (mockUsers.containsKey(request.getEmail())) {
+        if (userRepository.existsByEmail(request.getEmail())) {
             return ApiResponse.error("Email already registered");
         }
-        
-        // Create new user
+
         User user = new User();
-        user.setId(idCounter.getAndIncrement());
         user.setName(request.getName());
         user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword()); // In real app, this would be encrypted
+        user.setPassword(request.getPassword());
         user.setRole(request.getRole() != null ? request.getRole() : Role.USER);
-        user.setCreatedAt(LocalDateTime.now());
-        
-        mockUsers.put(user.getEmail(), user);
-        
-        UserResponse response = mapToResponse(user);
-        return ApiResponse.success("User registered successfully", response);
+
+        User savedUser = userRepository.save(user);
+
+        return ApiResponse.success(
+                "User registered successfully",
+                mapToResponse(savedUser)
+        );
     }
-    
+
     public ApiResponse<Map<String, Object>> login(LoginRequest request) {
-        User user = mockUsers.get(request.getEmail());
-        
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElse(null);
+
         if (user == null) {
             return ApiResponse.error("Invalid email or password");
         }
-        
+
         if (!user.getPassword().equals(request.getPassword())) {
             return ApiResponse.error("Invalid email or password");
         }
-        
-        // In real app, this would return a JWT token
+
         Map<String, Object> loginResponse = new HashMap<>();
         loginResponse.put("user", mapToResponse(user));
-        loginResponse.put("token", "mock-jwt-token-" + user.getId()); // Mock token
-        
+        loginResponse.put("token", "simple-session-user-" + user.getId());
+
         return ApiResponse.success("Login successful", loginResponse);
     }
-    
+
     private UserResponse mapToResponse(User user) {
         UserResponse response = new UserResponse();
         response.setId(user.getId());

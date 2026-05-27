@@ -18,33 +18,39 @@ import java.util.List;
 @RequiredArgsConstructor
 @Tag(name = "Transactions", description = "Transaction management endpoints")
 public class TransactionController {
-    
+
     private final TransactionService transactionService;
-    
+
     @GetMapping
     @Operation(summary = "Get all transactions")
     public ApiResponse<List<TransactionResponse>> getAllTransactions() {
         return ApiResponse.success(transactionService.getAllTransactions());
     }
-    
+
+    @GetMapping("/user/{userId}")
+    @Operation(summary = "Get transactions by user")
+    public ApiResponse<List<TransactionResponse>> getTransactionsByUser(@PathVariable Long userId) {
+        return ApiResponse.success(transactionService.getTransactionsByUser(userId));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Get transaction by ID")
     public ApiResponse<TransactionResponse> getTransactionById(@PathVariable Long id) {
         return ApiResponse.success(transactionService.getTransactionById(id));
     }
-    
+
     @GetMapping("/type/{type}")
     @Operation(summary = "Get transactions by type")
     public ApiResponse<List<TransactionResponse>> getTransactionsByType(@PathVariable TransactionType type) {
         return ApiResponse.success(transactionService.getTransactionsByType(type));
     }
-    
+
     @PostMapping
     @Operation(summary = "Create a new transaction")
     public ApiResponse<TransactionResponse> createTransaction(@Valid @RequestBody TransactionRequest request) {
         return ApiResponse.success("Transaction created successfully", transactionService.createTransaction(request));
     }
-    
+
     @PutMapping("/{id}")
     @Operation(summary = "Update transaction")
     public ApiResponse<TransactionResponse> updateTransaction(
@@ -52,7 +58,7 @@ public class TransactionController {
             @Valid @RequestBody TransactionRequest request) {
         return ApiResponse.success("Transaction updated successfully", transactionService.updateTransaction(id, request));
     }
-    
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete transaction")
     public ApiResponse<Void> deleteTransaction(@PathVariable Long id) {

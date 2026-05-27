@@ -37,3 +37,5 @@ build/
 # OS files
 .DS_Store
 Thumbs.db
+src/frontend/node_modules/
+src/frontend/.vite/
